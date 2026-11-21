@@ -249,7 +249,7 @@ export const config = {
 };
 
 export default async function handler(req) {
-  const url = new URL(req.url);
+  const url = new URL(req.url, 'https://localhost');
   const apiPath = url.pathname.replace(/^\/\.netlify\/functions\/api/, '/api');
   const method = req.method.toUpperCase();
 
