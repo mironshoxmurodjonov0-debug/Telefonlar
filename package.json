@@ -9,7 +9,7 @@
     "start": "NODE_ENV=production node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "node --check server.js && node --check vite.config.js && node --check src/main.js"
+    "lint": "node --check server.js && node --check vite.config.js && node --check src/main.js && node --check src/catalog-data.js && node --check netlify/functions/api.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

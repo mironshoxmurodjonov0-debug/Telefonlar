@@ -1,4 +1,5 @@
 // Pure Vanilla JavaScript storefront + real-time Telegram checkout + Admin Panel
+import { DEFAULT_PRODUCTS } from './catalog-data.js';
 
 const REGIONS = [
   'Toshkent shahri',
@@ -205,11 +206,18 @@ async function fetchProducts() {
   renderCatalog();
   try {
     const res = await fetch('/api/products');
-    if (!res.ok) throw new Error('Katalogni yuklab bo‘lmadi.');
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      throw new Error('Static fallback');
+    }
     const data = await res.json();
-    state.products = Array.isArray(data.products) ? data.products : [];
+    state.products = Array.isArray(data.products) && data.products.length > 0
+      ? data.products
+      : JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
   } catch {
-    state.productsError = 'Smartfonlar katalogini yuklashda xatolik yuz berdi.';
+    // When deployed as static-only build (e.g., Netlify Drop without Functions), render built-in catalog
+    state.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+    state.productsError = null;
   } finally {
     state.loadingProducts = false;
     renderCatalog();
