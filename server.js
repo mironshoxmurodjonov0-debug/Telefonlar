@@ -1,57 +1,39 @@
 import 'dotenv/config';
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer as createViteServer } from 'vite';
-import type {
-  Order,
-  OrderItem,
-  OrderStatus,
-  PaymentMethod,
-  Product,
-} from './src/types';
-
-interface StoreData {
-  products: Product[];
-  orders: Order[];
-  nextOrderSeq: number;
-  adminCredentialHash?: string;
-}
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const STORE_PATH = path.join(DATA_DIR, 'store.json');
 
-// Session signing key in memory (never exposed or written to disk)
+// Session signing key held strictly in memory
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
-// Runtime Telegram config overrides (kept strictly in server memory)
-const runtimeTelegram: { botToken?: string; chatId?: string } = {};
+// Runtime Telegram config overrides held strictly in server memory
+const runtimeTelegram = {};
 
-function getTelegramCredentials(): {
-  botToken: string;
-  chatId: string;
-  source: 'env' | 'runtime' | 'none';
-} {
-  const token = (runtimeTelegram.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '').trim();
+function getTelegramCredentials() {
+  const botToken = (runtimeTelegram.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '').trim();
   const chatId = (runtimeTelegram.chatId ?? process.env.TELEGRAM_CHAT_ID ?? '').trim();
-  const source: 'env' | 'runtime' | 'none' =
+  const source =
     runtimeTelegram.botToken || runtimeTelegram.chatId
       ? 'runtime'
-      : token && chatId
+      : botToken && chatId
         ? 'env'
         : 'none';
-  return { botToken: token, chatId, source };
+  return { botToken, chatId, source };
 }
 
-function maskToken(token: string): string {
+function maskToken(token) {
   if (!token) return '';
   if (token.length <= 10) return '••••••••';
   return `${token.slice(0, 6)}••••••${token.slice(-4)}`;
 }
 
-const SEED_PRODUCTS: Product[] = [
+const SEED_PRODUCTS = [
   {
     id: 'vm-iphone-16-pro',
     name: 'iPhone 16 Pro Titanium',
@@ -71,7 +53,6 @@ const SEED_PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 14,
     featured: true,
-    tag: 'Eng ommabop',
     description:
       'Grade 5 titan korpus, 120 Hz Super Retina XDR displey va 4K 120fps Dolby Vision video imkoniyatiga ega flagman smartfon.',
     specs: {
@@ -99,7 +80,6 @@ const SEED_PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 11,
     featured: true,
-    tag: 'S-Pen bilan',
     description:
       'O‘rnatilgan S-Pen, 200 MP asosiy kamera va aks ettirishga qarshi Gorilla Armor 2 oynali professional smartfon.',
     specs: {
@@ -126,7 +106,6 @@ const SEED_PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 8,
     featured: true,
-    tag: 'Toza Android',
     description:
       'Matte yashil shisha korpus, Super Actua LTPO ekran va tabiiy ranglarni aniq uzatuvchi triple-kamera tizimi.',
     specs: {
@@ -154,7 +133,6 @@ const SEED_PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 9,
     featured: true,
-    tag: '1-dyuymli sensor',
     description:
       'Katta 1 dyuymli asosiy kamera sensori, 200 MP periskop linza va 90W tezkor quvvatlash texnologiyasi.',
     specs: {
@@ -182,7 +160,6 @@ const SEED_PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 5,
     featured: true,
-    tag: 'Buklanuvchi',
     description:
       '7.6 dyuymli ichki planshet ekrani, mustahkamlangan Armor Aluminum sharnir va ko‘p vazifali ish unumdorligi.',
     specs: {
@@ -209,7 +186,6 @@ const SEED_PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 7,
     featured: true,
-    tag: 'Maxsus kolleksiya',
     description:
       '6.9 dyuymli ulkan ekran, rekord darajadagi batareya avtonomiyasi va maxsus emerald rang uyg‘unligi.',
     specs: {
@@ -221,12 +197,21 @@ const SEED_PRODUCTS: Product[] = [
   },
 ];
 
-function ensureStore(): StoreData {
+function writeStore(store) {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  const tmpPath = `${STORE_PATH}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf-8');
+  fs.renameSync(tmpPath, STORE_PATH);
+}
+
+function ensureStore() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial: StoreData = {
+    const initial = {
       products: SEED_PRODUCTS,
       orders: [],
       nextOrderSeq: 1001,
@@ -236,13 +221,13 @@ function ensureStore(): StoreData {
   }
   try {
     const raw = fs.readFileSync(STORE_PATH, 'utf-8');
-    const parsed = JSON.parse(raw) as StoreData;
+    const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed.products) || !Array.isArray(parsed.orders)) {
       throw new Error('Invalid store format');
     }
     return parsed;
   } catch {
-    const fallback: StoreData = {
+    const fallback = {
       products: SEED_PRODUCTS,
       orders: [],
       nextOrderSeq: 1001,
@@ -252,24 +237,14 @@ function ensureStore(): StoreData {
   }
 }
 
-function writeStore(store: StoreData): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  const tmpPath = `${STORE_PATH}.${process.pid}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf-8');
-  fs.renameSync(tmpPath, STORE_PATH);
-}
-
-// Scrypt password hashing helpers
-function hashPasscode(passcode: string): string {
+function hashPasscode(passcode) {
   const salt = crypto.randomBytes(16).toString('hex');
   const derived = crypto.scryptSync(passcode, salt, 64).toString('hex');
   return `${salt}:${derived}`;
 }
 
-function verifyPasscodeHash(passcode: string, storedHash: string): boolean {
-  const [salt, keyHex] = storedHash.split(':');
+function verifyPasscodeHash(passcode, storedHash) {
+  const [salt, keyHex] = String(storedHash).split(':');
   if (!salt || !keyHex) return false;
   const keyBuf = Buffer.from(keyHex, 'hex');
   const derivedBuf = crypto.scryptSync(passcode, salt, 64);
@@ -277,15 +252,14 @@ function verifyPasscodeHash(passcode: string, storedHash: string): boolean {
   return crypto.timingSafeEqual(keyBuf, derivedBuf);
 }
 
-function timingSafeCompareText(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf-8');
-  const bufB = Buffer.from(b, 'utf-8');
+function timingSafeCompareText(a, b) {
+  const bufA = Buffer.from(String(a), 'utf-8');
+  const bufB = Buffer.from(String(b), 'utf-8');
   if (bufA.length !== bufB.length) return false;
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-// Signed HMAC Bearer token helpers
-function createAdminToken(): string {
+function createAdminToken() {
   const payload = Buffer.from(
     JSON.stringify({
       role: 'admin',
@@ -298,8 +272,8 @@ function createAdminToken(): string {
   return `${payload}.${sig}`;
 }
 
-function verifyAdminToken(token: string): boolean {
-  const parts = token.split('.');
+function verifyAdminToken(token) {
+  const parts = String(token).split('.');
   if (parts.length !== 2) return false;
   const [payload, sig] = parts;
   const expectedSig = crypto
@@ -308,17 +282,14 @@ function verifyAdminToken(token: string): boolean {
     .digest('base64url');
   if (!timingSafeCompareText(sig, expectedSig)) return false;
   try {
-    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8')) as {
-      role?: string;
-      exp?: number;
-    };
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8'));
     return decoded.role === 'admin' && typeof decoded.exp === 'number' && decoded.exp > Date.now();
   } catch {
     return false;
   }
 }
 
-function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+function requireAdmin(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Admin avtorizatsiyasi talab qilinadi.' });
@@ -332,19 +303,19 @@ function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   next();
 }
 
-function escapeHtml(text: string): string {
-  return text
+function escapeHtml(text) {
+  return String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
 
-function formatPriceUzs(amount: number): string {
+function formatPriceUzs(amount) {
   return `${Math.round(amount).toLocaleString('ru-RU').replace(/,/g, ' ')} so'm`;
 }
 
-function paymentLabel(method: PaymentMethod): string {
+function paymentLabel(method) {
   switch (method) {
     case 'cash':
       return 'Naqd pul (yetkazib berganda)';
@@ -352,10 +323,12 @@ function paymentLabel(method: PaymentMethod): string {
       return 'Click / Payme / Karta';
     case 'installment':
       return 'Muddatli to‘lov (Nasiya)';
+    default:
+      return String(method);
   }
 }
 
-function statusLabelUz(status: OrderStatus): string {
+function statusLabelUz(status) {
   switch (status) {
     case 'new':
       return 'Yangi buyurtma';
@@ -367,12 +340,12 @@ function statusLabelUz(status: OrderStatus): string {
       return 'Yetkazib berildi';
     case 'cancelled':
       return 'Bekor qilindi';
+    default:
+      return String(status);
   }
 }
 
-async function sendTelegramMessage(
-  htmlText: string
-): Promise<{ ok: boolean; messageId?: number; error?: string }> {
+async function sendTelegramMessage(htmlText) {
   const { botToken, chatId } = getTelegramCredentials();
   if (!botToken || !chatId) {
     return {
@@ -394,12 +367,7 @@ async function sendTelegramMessage(
       signal: AbortSignal.timeout(8000),
     });
 
-    const data = (await response.json()) as {
-      ok?: boolean;
-      result?: { message_id?: number };
-      description?: string;
-    };
-
+    const data = await response.json();
     if (!response.ok || !data.ok) {
       return {
         ok: false,
@@ -419,7 +387,7 @@ async function sendTelegramMessage(
   }
 }
 
-function buildOrderTelegramHtml(order: Order, isStatusUpdate = false): string {
+function buildOrderTelegramHtml(order, isStatusUpdate = false) {
   const header = isStatusUpdate
     ? `<b>BUYURTMA HOLATI YANGILANDI · #${escapeHtml(order.orderNumber)}</b>`
     : `<b>YANGI BUYURTMA · #${escapeHtml(order.orderNumber)}</b>`;
@@ -450,8 +418,8 @@ function buildOrderTelegramHtml(order: Order, isStatusUpdate = false): string {
   ].join('\n');
 }
 
-function isSafeImageUrl(url: string): boolean {
-  const trimmed = url.trim();
+function isSafeImageUrl(url) {
+  const trimmed = String(url || '').trim();
   if (!trimmed) return false;
   if (trimmed.startsWith('/')) return !trimmed.startsWith('//');
   try {
@@ -467,12 +435,10 @@ async function startServer() {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
-  // Health endpoint
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
   });
 
-  // Public product catalog
   app.get('/api/products', (req, res) => {
     const store = ensureStore();
     const brand = typeof req.query.brand === 'string' ? req.query.brand.trim() : '';
@@ -498,24 +464,14 @@ async function startServer() {
     res.json({ products: items });
   });
 
-  // Public order creation + real-time Telegram dispatch
   app.post('/api/orders', async (req, res) => {
-    const body = req.body as {
-      customerName?: unknown;
-      customerPhone?: unknown;
-      region?: unknown;
-      address?: unknown;
-      paymentMethod?: unknown;
-      notes?: unknown;
-      items?: unknown;
-    };
-
+    const body = req.body || {};
     const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : '';
     const customerPhone = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
     const region = typeof body.region === 'string' ? body.region.trim() : '';
     const address = typeof body.address === 'string' ? body.address.trim() : '';
     const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 400) : undefined;
-    const paymentMethod = body.paymentMethod as PaymentMethod;
+    const paymentMethod = body.paymentMethod;
 
     if (customerName.length < 2 || customerName.length > 80) {
       res.status(400).json({ error: 'Iltimos, ismingizni to‘liq kiriting (kamida 2 ta belgi).' });
@@ -549,7 +505,7 @@ async function startServer() {
     }
 
     const store = ensureStore();
-    const verifiedItems: OrderItem[] = [];
+    const verifiedItems = [];
     let totalUzs = 0;
 
     for (const rawItem of body.items) {
@@ -557,16 +513,10 @@ async function startServer() {
         res.status(400).json({ error: 'Buyurtma mahsulotlari formati noto‘g‘ri.' });
         return;
       }
-      const itemObj = rawItem as {
-        productId?: unknown;
-        storage?: unknown;
-        color?: unknown;
-        quantity?: unknown;
-      };
-      const productId = typeof itemObj.productId === 'string' ? itemObj.productId : '';
+      const productId = typeof rawItem.productId === 'string' ? rawItem.productId : '';
       const quantity =
-        typeof itemObj.quantity === 'number' && Number.isInteger(itemObj.quantity)
-          ? itemObj.quantity
+        typeof rawItem.quantity === 'number' && Number.isInteger(rawItem.quantity)
+          ? rawItem.quantity
           : 0;
 
       if (quantity < 1 || quantity > 20) {
@@ -584,12 +534,12 @@ async function startServer() {
         return;
       }
 
-      const requestedStorage = typeof itemObj.storage === 'string' ? itemObj.storage : '';
+      const requestedStorage = typeof rawItem.storage === 'string' ? rawItem.storage : '';
       const storage = product.storageOptions.includes(requestedStorage)
         ? requestedStorage
         : product.storageOptions[0] || '256 GB';
 
-      const requestedColor = typeof itemObj.color === 'string' ? itemObj.color : '';
+      const requestedColor = typeof rawItem.color === 'string' ? rawItem.color : '';
       const color = product.colors.includes(requestedColor)
         ? requestedColor
         : product.colors[0] || 'Qora';
@@ -615,7 +565,7 @@ async function startServer() {
     const orderNumber = `VM-${store.nextOrderSeq}`;
     store.nextOrderSeq += 1;
 
-    const newOrder: Order = {
+    const newOrder = {
       id: crypto.randomUUID(),
       orderNumber,
       customerName,
@@ -632,13 +582,11 @@ async function startServer() {
       updatedAt: now,
     };
 
-    // Real-time Telegram dispatch
     const tgResult = await sendTelegramMessage(buildOrderTelegramHtml(newOrder, false));
     newOrder.telegramSent = tgResult.ok;
     if (tgResult.messageId) newOrder.telegramMessageId = tgResult.messageId;
     if (!tgResult.ok && tgResult.error) newOrder.telegramError = tgResult.error;
 
-    // Decrement stock counts safely
     for (const item of verifiedItems) {
       const prod = store.products.find((p) => p.id === item.productId);
       if (prod) {
@@ -655,7 +603,6 @@ async function startServer() {
     res.status(201).json({ order: newOrder });
   });
 
-  // Admin auth status check
   app.get('/api/admin/auth-status', (_req, res) => {
     const store = ensureStore();
     const envPass = (process.env.ADMIN_PASSCODE ?? '').trim();
@@ -664,7 +611,6 @@ async function startServer() {
     res.json({ requiresSetup, envPasscodeActive });
   });
 
-  // One-time first-run admin setup
   app.post('/api/admin/setup', (req, res) => {
     const envPass = (process.env.ADMIN_PASSCODE ?? '').trim();
     const store = ensureStore();
@@ -686,7 +632,6 @@ async function startServer() {
     res.status(201).json({ token });
   });
 
-  // Admin login
   app.post('/api/admin/login', (req, res) => {
     const passcode = typeof req.body?.passcode === 'string' ? req.body.passcode.trim() : '';
     if (!passcode) {
@@ -716,7 +661,6 @@ async function startServer() {
     res.json({ token });
   });
 
-  // Protected Admin: Orders list & stats
   app.get('/api/admin/orders', requireAdmin, (_req, res) => {
     const store = ensureStore();
     const orders = store.orders;
@@ -731,10 +675,9 @@ async function startServer() {
     res.json({ orders, stats });
   });
 
-  // Protected Admin: Update order status + optional Telegram notification
   app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
-    const status = req.body?.status as OrderStatus;
+    const status = req.body?.status;
     const notifyTelegram = req.body?.notifyTelegram !== false;
 
     if (!['new', 'confirmed', 'shipping', 'delivered', 'cancelled'].includes(status)) {
@@ -763,7 +706,6 @@ async function startServer() {
     res.json({ order });
   });
 
-  // Protected Admin: Resend order to Telegram
   app.post('/api/admin/orders/:id/resend-telegram', requireAdmin, async (req, res) => {
     const id = req.params.id;
     const store = ensureStore();
@@ -783,9 +725,8 @@ async function startServer() {
     res.json({ order, telegramOk: tg.ok, error: tg.error });
   });
 
-  // Protected Admin: Create product
   app.post('/api/admin/products', requireAdmin, (req, res) => {
-    const body = req.body as Partial<Product>;
+    const body = req.body || {};
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const brand = typeof body.brand === 'string' ? body.brand.trim() : '';
     const category = typeof body.category === 'string' ? body.category.trim() : 'Flagman';
@@ -811,22 +752,22 @@ async function startServer() {
 
     const storageOptions =
       Array.isArray(body.storageOptions) && body.storageOptions.length > 0
-        ? body.storageOptions.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        ? body.storageOptions.filter((s) => typeof s === 'string' && s.trim().length > 0)
         : ['128 GB', '256 GB', '512 GB'];
 
     const colors =
       Array.isArray(body.colors) && body.colors.length > 0
-        ? body.colors.filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        ? body.colors.filter((c) => typeof c === 'string' && c.trim().length > 0)
         : ['Qora Obsidian', 'Yashil Emerald', 'Oq Pearl'];
 
-    const storagePriceOffsets: Record<string, number> = {};
+    const storagePriceOffsets = {};
     storageOptions.forEach((opt, idx) => {
       const provided = body.storagePriceOffsets?.[opt];
       storagePriceOffsets[opt] =
         typeof provided === 'number' && Number.isFinite(provided) ? provided : idx * 1200000;
     });
 
-    const newProduct: Product = {
+    const newProduct = {
       id: `vm-${crypto.randomUUID().slice(0, 8)}`,
       name,
       brand,
@@ -843,7 +784,6 @@ async function startServer() {
       inStock: stockCount > 0 && body.inStock !== false,
       stockCount: Math.max(0, stockCount),
       featured: Boolean(body.featured),
-      tag: typeof body.tag === 'string' && body.tag.trim() ? body.tag.trim().slice(0, 28) : undefined,
       description:
         typeof body.description === 'string' && body.description.trim()
           ? body.description.trim().slice(0, 400)
@@ -863,7 +803,6 @@ async function startServer() {
     res.status(201).json({ product: newProduct });
   });
 
-  // Protected Admin: Update product
   app.patch('/api/admin/products/:id', requireAdmin, (req, res) => {
     const id = req.params.id;
     const store = ensureStore();
@@ -873,7 +812,7 @@ async function startServer() {
       return;
     }
 
-    const body = req.body as Partial<Product>;
+    const body = req.body || {};
     if (typeof body.name === 'string' && body.name.trim().length >= 2) {
       product.name = body.name.trim();
     }
@@ -909,7 +848,6 @@ async function startServer() {
     res.json({ product });
   });
 
-  // Protected Admin: Delete product
   app.delete('/api/admin/products/:id', requireAdmin, (req, res) => {
     const id = req.params.id;
     const store = ensureStore();
@@ -923,7 +861,6 @@ async function startServer() {
     res.json({ ok: true });
   });
 
-  // Protected Admin: Telegram configuration status (never returns raw token)
   app.get('/api/admin/telegram', requireAdmin, (_req, res) => {
     const { botToken, chatId, source } = getTelegramCredentials();
     res.json({
@@ -934,7 +871,6 @@ async function startServer() {
     });
   });
 
-  // Protected Admin: Update Telegram runtime settings in memory
   app.put('/api/admin/telegram', requireAdmin, (req, res) => {
     const botToken = typeof req.body?.botToken === 'string' ? req.body.botToken.trim() : '';
     const chatId = typeof req.body?.chatId === 'string' ? req.body.chatId.trim() : '';
@@ -955,7 +891,6 @@ async function startServer() {
     });
   });
 
-  // Protected Admin: Test Telegram bot & channel delivery
   app.post('/api/admin/telegram/test', requireAdmin, async (_req, res) => {
     const { botToken, chatId } = getTelegramCredentials();
     if (!botToken || !chatId) {
@@ -967,11 +902,7 @@ async function startServer() {
       const meRes = await fetch(`https://api.telegram.org/bot${botToken}/getMe`, {
         signal: AbortSignal.timeout(6000),
       });
-      const meData = (await meRes.json()) as {
-        ok?: boolean;
-        result?: { username?: string };
-        description?: string;
-      };
+      const meData = await meRes.json();
       if (!meRes.ok || !meData.ok) {
         res.status(400).json({
           ok: false,
@@ -981,7 +912,7 @@ async function startServer() {
       }
 
       const sendRes = await sendTelegramMessage(
-        `<b>VERDE MOBILE — Test xabari</b>\n\nTelegram kanal ulanishi faol holatda. Yangi buyurtmalar real vaqt rejimida shu kanalga yuboriladi.`
+        '<b>VERDE MOBILE — Test xabari</b>\n\nTelegram kanal ulanishi faol holatda. Yangi buyurtmalar real vaqt rejimida shu kanalga yuboriladi.'
       );
 
       if (!sendRes.ok) {
@@ -1006,7 +937,6 @@ async function startServer() {
     }
   });
 
-  // Vite dev middleware or production static assets
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

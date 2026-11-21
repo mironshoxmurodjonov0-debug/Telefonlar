@@ -1,12 +1,18 @@
 <!doctype html>
-<html lang="uz" class="scroll-smooth">
+<html lang="uz">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VERDE MOBILE — Zamonaviy smartfonlar do'koni</title>
-    <meta name="description" content="Flagman smartfonlar, rasmiy kafolat, tezkor onlayn buyurtma va real vaqtda Telegram xabarnomalar." />
+    <meta
+      name="description"
+      content="Flagman smartfonlar, rasmiy kafolat, tezkor onlayn buyurtma va real vaqtda Telegram xabarnomalar."
+    />
     <meta property="og:title" content="VERDE MOBILE — Zamonaviy smartfonlar do'koni" />
-    <meta property="og:description" content="Flagman smartfonlar, rasmiy kafolat, tezkor onlayn buyurtma va real vaqtda Telegram xabarnomalar." />
+    <meta
+      property="og:description"
+      content="Flagman smartfonlar, rasmiy kafolat, tezkor onlayn buyurtma va real vaqtda Telegram xabarnomalar."
+    />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,10 +21,281 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
-  <body class="bg-white text-[#0D110E] antialiased selection:bg-[#16A34A] selection:text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body>
+    <div class="app-shell">
+      <!-- 3-Zone Top Navigation Bar -->
+      <header class="site-header">
+        <div class="container header-inner">
+          <button type="button" class="brand-wordmark" data-nav="store" data-section="hero">
+            VERDE MOBILE
+          </button>
+
+          <nav class="desktop-nav" aria-label="Asosiy menyu">
+            <button type="button" class="nav-link" data-nav="store" data-section="katalog">
+              Katalog
+            </button>
+            <button type="button" class="nav-link" data-nav="store" data-section="kafolat">
+              Kafolat
+            </button>
+            <button type="button" class="nav-link" data-nav="store" data-section="yetkazish">
+              Yetkazish
+            </button>
+            <button type="button" class="nav-link" id="nav-admin-btn" data-nav="admin">
+              Admin Panel
+            </button>
+          </nav>
+
+          <div class="header-actions">
+            <button type="button" class="cart-trigger" id="open-cart-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+              <span>Savat</span>
+              <span class="cart-count tabular-nums" id="header-cart-count">(0)</span>
+            </button>
+
+            <button
+              type="button"
+              class="mobile-menu-toggle"
+              id="mobile-menu-toggle"
+              aria-label="Menyuni ochish"
+              aria-expanded="false"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Mobile Drawer Menu -->
+        <div class="mobile-nav-drawer hidden" id="mobile-nav-drawer">
+          <button type="button" class="mobile-nav-item" data-nav="store" data-section="katalog">
+            <span>Smartfonlar katalogi</span>
+            <span class="mobile-nav-hint">Ko‘rish</span>
+          </button>
+          <button type="button" class="mobile-nav-item" data-nav="store" data-section="kafolat">
+            <span>Rasmiy kafolat</span>
+          </button>
+          <button type="button" class="mobile-nav-item" data-nav="store" data-section="yetkazish">
+            <span>Yetkazib berish</span>
+          </button>
+          <button type="button" class="mobile-nav-item mobile-nav-accent" data-nav="admin">
+            <span>Admin Panel</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Storefront View -->
+      <main id="store-view">
+        <!-- Storefront Hero -->
+        <section id="hero" class="hero-section">
+          <div class="container hero-container">
+            <div class="hero-split">
+              <div class="hero-copy">
+                <div>
+                  <p class="hero-kicker">Flagman smartfonlar · Rasmiy IMEI · Toshkent</p>
+                  <h1 class="hero-title">Yangi avlod smartfonlari birgina bosishda</h1>
+                  <p class="hero-subtitle">
+                    Original Apple, Samsung, Xiaomi va Google flagmanlari. Onlayn buyurtma bering —
+                    so‘rovingiz bir soniyada Telegram kanalimizga tushadi va operatorlarimiz
+                    bog‘lanadi.
+                  </p>
+                </div>
+
+                <div class="hero-cta-group">
+                  <button type="button" class="btn-primary" data-nav="store" data-section="katalog">
+                    <span>Modellarni ko‘rish</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-outline-light" data-nav="admin">
+                    Admin boshqaruvi
+                  </button>
+                </div>
+              </div>
+
+              <div class="hero-media">
+                <img
+                  src="/src/assets/images/hero_flagship_emerald_1795237738186.jpg"
+                  alt="Yashil va qora titan korpusli flagman smartfon"
+                  referrerpolicy="no-referrer"
+                />
+              </div>
+            </div>
+
+            <!-- 4-Column Trust Strip -->
+            <div class="trust-strip">
+              <div class="trust-cell">
+                <p class="trust-heading trust-green tabular-nums">100% Original</p>
+                <p class="trust-desc">Barcha qurilmalar UzIMEI tizimida ro‘yxatdan o‘tgan</p>
+              </div>
+              <div class="trust-cell">
+                <p class="trust-heading tabular-nums">12 oy kafolat</p>
+                <p class="trust-desc">Rasmiy servis markazi orqali bepul texnik xizmat</p>
+              </div>
+              <div class="trust-cell">
+                <p class="trust-heading tabular-nums">2 soatda yetkazish</p>
+                <p class="trust-desc">Toshkent bo‘ylab tezkor kuryer, viloyatlarga 24 soat</p>
+              </div>
+              <div class="trust-cell">
+                <p class="trust-heading tabular-nums">Real-vaqt Telegram</p>
+                <p class="trust-desc">Buyurtma tasdiqlanishi bilan kanalga tezkor uzatish</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Interactive Catalog Section -->
+        <section id="katalog" class="catalog-section">
+          <div class="container">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker">Sotuvdagi smartfonlar</p>
+                <h2 class="section-title">Flagmanlar kolleksiyasi</h2>
+              </div>
+              <p class="catalog-counter tabular-nums" id="catalog-count">0 ta model ko‘rsatilmoqda</p>
+            </div>
+
+            <div class="catalog-toolbar">
+              <div class="brand-tabs" id="brand-tabs" role="tablist" aria-label="Brendlar bo‘yicha filtrlash">
+                <button type="button" class="brand-tab active" data-brand="Barchasi" role="tab" aria-selected="true">Barchasi</button>
+                <button type="button" class="brand-tab" data-brand="Apple" role="tab" aria-selected="false">Apple</button>
+                <button type="button" class="brand-tab" data-brand="Samsung" role="tab" aria-selected="false">Samsung</button>
+                <button type="button" class="brand-tab" data-brand="Xiaomi" role="tab" aria-selected="false">Xiaomi</button>
+                <button type="button" class="brand-tab" data-brand="Google" role="tab" aria-selected="false">Google</button>
+              </div>
+
+              <div class="catalog-controls">
+                <div class="search-box">
+                  <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input
+                    type="search"
+                    id="search-input"
+                    placeholder="Model yoki chip qidirish..."
+                    aria-label="Model qidirish"
+                  />
+                </div>
+
+                <select id="sort-select" aria-label="Saralash">
+                  <option value="featured">Ommabop modellar</option>
+                  <option value="price-asc">Avval arzonroq</option>
+                  <option value="price-desc">Avval qimmatroq</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="catalog-grid" class="product-grid"></div>
+          </div>
+        </section>
+
+        <!-- Guarantees & Delivery Section -->
+        <section id="kafolat" class="guarantees-section">
+          <div class="container">
+            <div class="guarantees-head">
+              <p class="section-kicker">Nima uchun Verde Mobile</p>
+              <h2 class="section-title">Har bir qurilma kafolatlangan va tezkor yetkaziladi</h2>
+            </div>
+
+            <div class="guarantees-grid">
+              <article class="guarantee-item">
+                <h3>01. Rasmiy UzIMEI va kafolat</h3>
+                <p>
+                  Har bir smartfon zavod plombasi bilan keladi, UzIMEI tizimidan rasman o‘tkazilgan
+                  va 12 oylik servis kafolat taloniga ega.
+                </p>
+              </article>
+
+              <article id="yetkazish" class="guarantee-item">
+                <h3>02. Bepul va tezkor yetkazish</h3>
+                <p>
+                  Toshkent shahri ichida 2 soat ichida kuryer orqali bepul yetkazib beramiz. Boshqa
+                  viloyatlarga 24 soat ichida ishonchli pochta xizmati mavjud.
+                </p>
+              </article>
+
+              <article class="guarantee-item">
+                <h3>03. Telegram orqali tezkor nazorat</h3>
+                <p>
+                  Saytda qoldirilgan har bir buyurtma shu zahotiyoq Telegram kanalga tushadi va
+                  menejer tomonidan real vaqt rejimida tasdiqlanadi.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Admin Panel View (Dynamic JS Container) -->
+      <main id="admin-view" class="admin-view hidden"></main>
+
+      <!-- Minimal Obsidian Footer -->
+      <footer class="site-footer">
+        <div class="container">
+          <div class="footer-grid">
+            <div class="footer-brand">
+              <p class="footer-logo">VERDE MOBILE</p>
+              <p class="footer-address">
+                Toshkent shahri, Amir Temur shoh ko‘chasi 108. Har kuni 09:00 dan 21:00 gacha xizmat
+                ko‘rsatamiz.
+              </p>
+            </div>
+
+            <div class="footer-links">
+              <p class="footer-col-title">Bo‘limlar</p>
+              <ul>
+                <li>
+                  <button type="button" data-nav="store" data-section="katalog">
+                    Smartfonlar katalogi
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-nav="store" data-section="kafolat">
+                    Rasmiy kafolat
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-nav="admin">Admin Panel</button>
+                </li>
+              </ul>
+            </div>
+
+            <div class="footer-contact">
+              <p class="footer-col-title">Aloqa</p>
+              <p class="footer-phone tabular-nums">+998 71 200 45 45</p>
+              <p class="footer-hours">Onlayn buyurtmalar 24/7 qabul qilinadi</p>
+            </div>
+          </div>
+
+          <div class="footer-bottom">
+            <p>© <span id="footer-year"></span> VERDE MOBILE. Barcha huquqlar himoyalangan.</p>
+            <p>Original smartfonlar do‘koni</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div id="product-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pdp-title">
+      <div class="modal-card" id="product-modal-content"></div>
+    </div>
+
+    <!-- Slide-Over Cart & Checkout Drawer -->
+    <div id="cart-drawer" class="drawer-backdrop hidden" role="dialog" aria-modal="true" aria-label="Buyurtma savati">
+      <div class="drawer-panel" id="cart-drawer-panel"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
-
