@@ -1,0 +1,6 @@
+{
+  "name": "VERDE MOBILE",
+  "description": "Zamonaviy smartfonlar onlayn do'koni — real vaqtda Telegram buyurtmalar va admin boshqaruv tizimi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
