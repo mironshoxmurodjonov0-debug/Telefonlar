@@ -750,6 +750,19 @@ function renderCartDrawer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        if (errEl) {
+          errEl.textContent =
+            "Buyurtma API serveri topilmadi. Agar Netlify'ga faqat dist/ papkasini yuklagan bo'lsangiz, Telegramga yuborish uchun loyihani GitHub yoki Netlify CLI orqali deploy qiling va Netlify Environment Variables bo'limida TELEGRAM_BOT_TOKEN hamda TELEGRAM_CHAT_ID ni kiriting.";
+          errEl.classList.remove('hidden');
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Buyurtmani tasdiqlash';
+        }
+        return;
+      }
       const data = await res.json();
       if (!res.ok || !data.order) {
         if (errEl) {

@@ -244,6 +244,10 @@ function json(data, status = 200) {
   });
 }
 
+export const config = {
+  path: '/api/*',
+};
+
 export default async function handler(req) {
   const url = new URL(req.url);
   const apiPath = url.pathname.replace(/^\/\.netlify\/functions\/api/, '/api');
